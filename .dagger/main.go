@@ -53,13 +53,14 @@ func (m *Book) Test(
 		Stdout(ctx)
 }
 
-func (m *Book) Changelog(
+func (m *Book) UpdateChangelog(
 	// +defaultPath="/"
 	source *dagger.Directory,
 ) *dagger.File {
+	source = source.WithoutDirectory(".dagger")
 	ctr := dag.Container().
 		From("golang:latest").
-		WithMountedDirectory("/app", source.WithoutDirectory(".dagger")).
+		WithMountedDirectory("/app", source).
 		WithWorkdir("/app")
 
 	diff := ctr.
