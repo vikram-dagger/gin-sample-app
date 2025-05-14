@@ -53,7 +53,38 @@ func (m *Book) Test(
 		Stdout(ctx)
 }
 
-// Returns a container that echoes whatever string argument is provided
+func (m *Book) Changelog(
+	// +defaultPath="/"
+	source *dagger.Directory,
+) *dagger.File {
+	ctr := dag.Container().
+		From("golang:latest").
+		WithMountedDirectory("/app", source).
+		WithWorkdir("/app")
+
+	env := dag.Env(dagger.EnvOpts{Privileged: true}).
+		WithContainerInput("before", ctr, "the container with the source code").
+		WithFileOutput("after", "the changelog file with the updated changelog")
+
+	prompt := `
+		- You are an expert in the Go programming language.
+		- You are also an expert in the Gin framework and database integrations.
+		- You have access to a container with the code in the /app directory.
+		- The container has tools to let you read and write the code and obtain a diff.
+		- Obtain a diff and analyze the changes in the code.
+		- Compare the changes with the OpenAPI spec in the /app/openapi.yml file.
+		- In the container, update the changelog with a summary of the changes.
+		- Be sure to always write your changes to the container.
+		- Focus only on Go files within the /app directory.
+	`
+
+	work := dag.LLM().
+		WithEnv(env).
+		WithPrompt(prompt)
+
+	return work.Env().Output("after").AsFile()
+}
+
 func (m *Book) Env(
 	// +defaultPath="/"
 	source *dagger.Directory,
