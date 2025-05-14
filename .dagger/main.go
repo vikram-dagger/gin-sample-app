@@ -62,20 +62,24 @@ func (m *Book) Changelog(
 		WithMountedDirectory("/app", source).
 		WithWorkdir("/app")
 
+	diff := ctr.
+		WithExec([]string{"sh", "-c", "git diff > /tmp/a.diff"}).
+		File("/tmp/a.diff")
+
 	env := dag.Env(dagger.EnvOpts{Privileged: true}).
-		WithContainerInput("before", ctr, "the container with the source code").
-		WithFileOutput("after", "the changelog file with the updated changelog")
+		WithDirectoryInput("source", source, "directory with source code").
+		WithFileInput("diff", diff, "file with code diff").
+		WithFileOutput("after", "updated changelog file")
 
 	prompt := `
 		- You are an expert in the Go programming language.
 		- You are also an expert in the Gin framework and database integrations.
-		- You have access to a container with the code in the /app directory.
-		- The container has tools to let you read and write the code and obtain a diff.
-		- Obtain a diff and analyze the changes in the code.
-		- Compare the changes with the OpenAPI spec in the /app/openapi.yml file.
-		- In the container, update the changelog with a summary of the changes.
-		- Be sure to always write your changes to the container.
-		- Focus only on Go files within the /app directory.
+		- You have access to a directory with source code and an OpenAPI spec.
+		- The directory has tools to let you read and write files.
+		- You also have access to a diff file with code changes.
+		- Understand the changes by reading the source code, the diff and the OpenAPI spec.
+		- Update the changelog with a summary of the changes.
+		- Focus only on the Go files in the directory.
 	`
 
 	work := dag.LLM().
