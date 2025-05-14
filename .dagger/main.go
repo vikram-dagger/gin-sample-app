@@ -59,7 +59,7 @@ func (m *Book) Changelog(
 ) *dagger.File {
 	ctr := dag.Container().
 		From("golang:latest").
-		WithMountedDirectory("/app", source).
+		WithMountedDirectory("/app", source.WithoutDirectory(".dagger")).
 		WithWorkdir("/app")
 
 	diff := ctr.
@@ -78,7 +78,7 @@ func (m *Book) Changelog(
 		- The directory has tools to let you read and write files.
 		- You also have access to a diff file with code changes.
 		- Understand the changes by reading the source code, the diff and the OpenAPI spec.
-		- Update the changelog with a summary of the changes.
+		- Update the changelog file in the source directory with a summary of the changes and return the updated file.
 		- Focus only on the Go files in the directory.
 	`
 
