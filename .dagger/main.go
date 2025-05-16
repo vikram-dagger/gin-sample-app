@@ -110,7 +110,12 @@ func (m *Book) UpdateChangelog(
 
 	// Check if we should open a PR
 	if repository != "" && ref != "" {
-		prURL, err := OpenPR(ctx, repository, ref, changelogFile, token)
+		diffFile := ctr.
+			WithMountedFile("/app/CHANGELOG.md", changelogFile).
+			WithExec([]string{"sh", "-c", "git diff > /tmp/a.diff"}).
+			File("/tmp/a.diff")
+
+		prURL, err := OpenPR(ctx, repository, ref, diffFile, token)
 		if err != nil {
 			panic(fmt.Errorf("failed to open PR: %w", err))
 		}
@@ -186,7 +191,7 @@ func OpenPR(
 		WithExec([]string{"git", "checkout", newBranch}).
 		WithExec([]string{"git", "apply", "/tmp/a.diff"}).
 		WithExec([]string{"git", "add", "."}).
-		WithExec([]string{"git", "commit", "-m", fmt.Sprintf("Fixes PR #%s", prNumber)}).
+		WithExec([]string{"git", "commit", "-m", fmt.Sprintf("Follows up on PR #%s", prNumber)}).
 		WithExec([]string{"git", "push", "--set-upstream", "origin", newBranch}).
 		Stdout(ctx)
 	if err != nil {
@@ -198,7 +203,7 @@ func OpenPR(
 		Title: github.String(fmt.Sprintf("Automated follow-up to PR #%s", prNumber)),
 		Head:  github.String(fmt.Sprintf("%s:%s", owner, newBranch)),
 		Base:  github.String(baseBranch),
-		Body:  github.String(fmt.Sprintf("This PR fixes PR #%s using `%s`.", prNumber, newBranch)),
+		Body:  github.String(fmt.Sprintf("This PR follows up PR #%s using `%s`.", prNumber, newBranch)),
 	}
 	createdPR, _, err := gh.PullRequests.Create(ctx, owner, repo, newPR)
 	if err != nil {
