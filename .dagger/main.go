@@ -3,7 +3,19 @@ package main
 import (
 	"context"
 	"dagger/book/internal/dagger"
+	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
+
+	"github.com/google/go-github/v61/github"
+	"golang.org/x/oauth2"
 )
+
+type Foo struct {
+	File *dagger.File
+	Data string
+}
 
 type Book struct{}
 
@@ -54,9 +66,16 @@ func (m *Book) Test(
 }
 
 func (m *Book) UpdateChangelog(
+	ctx context.Context,
 	// +defaultPath="/"
 	source *dagger.Directory,
-) *dagger.File {
+	// +optional
+	repository string,
+	// +optional
+	ref string,
+	// +optional
+	token dagger.Secret,
+) *Foo {
 	source = source.WithoutDirectory(".dagger")
 	ctr := dag.Container().
 		From("golang:latest").
@@ -87,7 +106,19 @@ func (m *Book) UpdateChangelog(
 		WithEnv(env).
 		WithPrompt(prompt)
 
-	return work.Env().Output("after").AsFile()
+	changelogFile := work.Env().Output("after").AsFile()
+
+	// Check if we should open a PR
+	if repository != "" && ref != "" {
+		prURL, err := OpenPR(ctx, repository, ref, changelogFile, token)
+		if err != nil {
+			panic(fmt.Errorf("failed to open PR: %w", err))
+		}
+
+		return &Foo{Data: prURL}
+	}
+
+	return &Foo{File: changelogFile}
 }
 
 func (m *Book) Env(
@@ -98,4 +129,133 @@ func (m *Book) Env(
 		From("golang:latest").
 		WithMountedDirectory("/app", source).
 		WithWorkdir("/app")
+}
+
+func OpenPR(
+	ctx context.Context,
+	repository string,
+	ref string,
+	diffFile *dagger.File,
+	token dagger.Secret,
+) (string, error) {
+	// Extract PR number from ref
+	re := regexp.MustCompile(`(\d+)`)
+	matches := re.FindStringSubmatch(ref)
+	if len(matches) < 2 {
+		return "", fmt.Errorf("invalid ref format: %s", ref)
+	}
+	prNumber := matches[1]
+	newBranch := fmt.Sprintf("patch-from-pr-%s", prNumber)
+
+	// Setup GitHub client
+	plaintext, err := token.Plaintext(ctx)
+	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: plaintext})
+	tc := oauth2.NewClient(ctx, ts)
+	gh := github.NewClient(tc)
+
+	// Split repo
+	parts := strings.Split(repository, "/")
+	if len(parts) != 2 {
+		return "", fmt.Errorf("invalid repository format: %s", repository)
+	}
+	owner, repo := parts[0], parts[1]
+
+	// Get original PR
+	prNumInt := github.Int(int64(mustParseInt(prNumber)))
+	pr, _, err := gh.PullRequests.Get(ctx, owner, repo, *prNumInt)
+	if err != nil {
+		return "", fmt.Errorf("failed to get original PR: %w", err)
+	}
+	baseBranch := pr.GetHead().GetRef()
+
+	// Run container to apply patch
+	remoteURL := fmt.Sprintf("https://%s@github.com/%s.git", plaintext, repository)
+	diff, err := diffFile.Contents(ctx)
+	_, err = dag.Container().
+		From("alpine/git").
+		WithNewFile("/tmp/a.diff", diff, dagger.ContainerWithNewFileOpts{
+			Permissions: 0644,
+		}).
+		WithWorkdir("/app").
+		WithEnvVariable("GITHUB_TOKEN", plaintext).
+		WithExec([]string{"git", "init"}).
+		WithExec([]string{"git", "config", "user.name", "Dagger Agent"}).
+		WithExec([]string{"git", "config", "user.email", "vikram@dagger.io"}).
+		WithExec([]string{"sh", "-c", "git remote add origin " + remoteURL}).
+		WithExec([]string{"git", "fetch", "origin", fmt.Sprintf("pull/%s/head:%s", prNumber, newBranch)}).
+		WithExec([]string{"git", "checkout", newBranch}).
+		WithExec([]string{"git", "apply", "/tmp/a.diff"}).
+		WithExec([]string{"git", "add", "."}).
+		WithExec([]string{"git", "commit", "-m", fmt.Sprintf("Fixes PR #%s", prNumber)}).
+		WithExec([]string{"git", "push", "--set-upstream", "origin", newBranch}).
+		Stdout(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to apply and push changes: %w", err)
+	}
+
+	// Create new PR
+	newPR := &github.NewPullRequest{
+		Title: github.String(fmt.Sprintf("Automated follow-up to PR #%s", prNumber)),
+		Head:  github.String(fmt.Sprintf("%s:%s", owner, newBranch)),
+		Base:  github.String(baseBranch),
+		Body:  github.String(fmt.Sprintf("This PR fixes PR #%s using `%s`.", prNumber, newBranch)),
+	}
+	createdPR, _, err := gh.PullRequests.Create(ctx, owner, repo, newPR)
+	if err != nil {
+		return "", fmt.Errorf("failed to create new PR: %w", err)
+	}
+
+	return createdPR.GetHTMLURL(), nil
+}
+
+func (m *Book) WritePRComment(
+	ctx context.Context,
+	repository string,
+	ref string,
+	body string,
+	token dagger.Secret,
+) (string, error) {
+	// Extract PR number using regex
+	re := regexp.MustCompile(`(\d+)`)
+	matches := re.FindStringSubmatch(ref)
+	if len(matches) < 2 {
+		return "", fmt.Errorf("failed to extract PR number from ref: %s", ref)
+	}
+	prNumberStr := matches[1]
+	prNumber, err := strconv.Atoi(prNumberStr)
+	if err != nil {
+		return "", fmt.Errorf("invalid PR number: %s", prNumberStr)
+	}
+
+	// Extract owner and repo
+	parts := strings.Split(repository, "/")
+	if len(parts) != 2 {
+		return "", fmt.Errorf("invalid repository format: %s", repository)
+	}
+	owner, repo := parts[0], parts[1]
+
+	// Setup GitHub client
+	plaintext, err := token.Plaintext(ctx)
+	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: plaintext})
+	tc := oauth2.NewClient(ctx, ts)
+	gh := github.NewClient(tc)
+
+	// Create the comment
+	comment := &github.IssueComment{
+		Body: github.String(body),
+	}
+	createdComment, _, err := gh.Issues.CreateComment(ctx, owner, repo, prNumber, comment)
+	if err != nil {
+		return "", fmt.Errorf("failed to create comment: %w", err)
+	}
+
+	return createdComment.GetHTMLURL(), nil
+}
+
+func mustParseInt(s string) int {
+	v, err := strconv.Atoi(s)
+	if err != nil {
+		panic(fmt.Sprintf("invalid int: %s", s))
+	}
+	return v
 }
