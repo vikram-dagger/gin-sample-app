@@ -161,7 +161,7 @@ func OpenPR(
 	owner, repo := parts[0], parts[1]
 
 	// Get original PR
-	prNumInt := github.Int(int64(mustParseInt(prNumber)))
+	prNumInt := github.Int(mustParseInt(prNumber))
 	pr, _, err := gh.PullRequests.Get(ctx, owner, repo, *prNumInt)
 	if err != nil {
 		return "", fmt.Errorf("failed to get original PR: %w", err)
