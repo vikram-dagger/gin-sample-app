@@ -98,7 +98,10 @@ func (m *Book) UpdateChangelog(
 		- The directory has tools to let you read and write files.
 		- You also have access to a diff file with code changes.
 		- Understand the changes by reading the source code, the diff and the OpenAPI spec.
-		- Update the changelog file in the source directory. Increment the version, add a summary of the changes and return the updated file.
+		- Update the changelog file in the source directory.
+		- When updating the changelog file, increment the version and add a summary of the changes.
+		- You must save the changelog file after updating it.
+		- You are not done until your changes are saved back to the changelog file.
 		- Focus only on the Go files in the directory.
 	`
 
