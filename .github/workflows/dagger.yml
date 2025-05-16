@@ -1,0 +1,47 @@
+name: dagger
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run Tests
+        id: test
+        uses: dagger/dagger-for-github@8.0.0
+        with:
+          version: "0.18.5"
+          verb: call
+          args: test
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+
+  update-changelog:
+    name: Update Changelog
+    runs-on: ubuntu-latest
+    needs: test
+    if: >
+      github.event_name == 'pull_request' &&
+      contains(github.event.pull_request.labels.*.name, 'needs-changelog')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Update Changelog
+        uses: dagger/dagger-for-github@8.0.0
+        with:
+          version: "0.18.5"
+          verb: call
+          args: update-changelog --repository=${{ github.repository }} --ref=${{ github.ref_name }} --token=env://GITHUB_API_TOKEN
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: "gpt-4o"
+          GITHUB_API_TOKEN: ${{ secrets.GH_API_TOKEN }}
