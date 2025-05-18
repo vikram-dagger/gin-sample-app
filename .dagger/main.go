@@ -195,7 +195,8 @@ func OpenPR(
 		WithWorkdir("/app").
 		WithEnvVariable("GITHUB_TOKEN", plaintext).
 		WithExec([]string{"git", "init"}).
-		WithExec([]string{"git", "config", "user.name", "Dagger Agent"}).
+		WithExec([]string{"git", "branch", "-m", "main"}).
+		WithExec([]string{"git", "config", "user.email", "vikram@dagger.io"}).
 		WithExec([]string{"git", "config", "user.email", "vikram@dagger.io"}).
 		WithExec([]string{"sh", "-c", "git remote add origin " + remoteURL}).
 		WithExec([]string{"git", "fetch", "origin", fmt.Sprintf("pull/%s/head:%s", prNumber, newBranch)}).
