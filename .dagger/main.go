@@ -118,6 +118,7 @@ func (m *Book) UpdateChangelog(
 		diffFile := *ctr.
 			WithFile("/app/CHANGELOG.md", changelogFile).
 			WithExec([]string{"sh", "-c", "git diff CHANGELOG.md > /tmp/changelog.diff"}).
+			Terminal().
 			File("/tmp/changelog.diff")
 
 		prURL, err := OpenPR(ctx, repository, ref, diffFile, token)
@@ -186,31 +187,29 @@ func OpenPR(
 	baseBranch := pr.GetHead().GetRef()
 
 	// Run container to apply patch
-	//remoteURL := fmt.Sprintf("https://%s@github.com/%s.git", plaintext, repository)
+	remoteURL := fmt.Sprintf("https://%s@github.com/%s.git", plaintext, repository)
 	diff, err := diffFile.Contents(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to get file contents: %w", err)
 	}
-	fmt.Println("Diff: ", diff)
+
 	_, err = dag.Container().
 		From("alpine/git").
 		WithNewFile("/tmp/changelog.diff", diff).
 		WithWorkdir("/app").
 		WithExec([]string{"cat", "/tmp/changelog.diff"}).
-		/*
-			//WithEnvVariable("GITHUB_TOKEN", plaintext).
-			WithExec([]string{"git", "init"}).
-			WithExec([]string{"git", "branch", "-m", "main"}).
-			WithExec([]string{"git", "config", "user.name", "Dagger Agent"}).
-			WithExec([]string{"git", "config", "user.email", "vikram@dagger.io"}).
-			WithExec([]string{"sh", "-c", "git remote add origin " + remoteURL}).
-			WithExec([]string{"git", "fetch", "origin", fmt.Sprintf("pull/%s/head:%s", prNumber, newBranch)}).
-			WithExec([]string{"git", "checkout", newBranch}).
-			WithExec([]string{"git", "apply", "--allow-empty", "/tmp/changelog.diff"}).
-			WithExec([]string{"git", "add", "."}).
-			WithExec([]string{"git", "commit", "-m", fmt.Sprintf("Follows up on PR #%s", prNumber)}).
-			WithExec([]string{"git", "push", "--set-upstream", "origin", newBranch}).
-		*/
+		//WithEnvVariable("GITHUB_TOKEN", plaintext).
+		WithExec([]string{"git", "init"}).
+		WithExec([]string{"git", "branch", "-m", "main"}).
+		WithExec([]string{"git", "config", "user.name", "Dagger Agent"}).
+		WithExec([]string{"git", "config", "user.email", "vikram@dagger.io"}).
+		WithExec([]string{"sh", "-c", "git remote add origin " + remoteURL}).
+		WithExec([]string{"git", "fetch", "origin", fmt.Sprintf("pull/%s/head:%s", prNumber, newBranch)}).
+		WithExec([]string{"git", "checkout", newBranch}).
+		WithExec([]string{"git", "apply", "--allow-empty", "/tmp/changelog.diff"}).
+		WithExec([]string{"git", "add", "."}).
+		WithExec([]string{"git", "commit", "-m", fmt.Sprintf("Follows up on PR #%s", prNumber)}).
+		WithExec([]string{"git", "push", "--set-upstream", "origin", newBranch}).
 		Stdout(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to apply and push changes: %w", err)
