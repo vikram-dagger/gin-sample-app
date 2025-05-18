@@ -186,7 +186,7 @@ func OpenPR(
 	baseBranch := pr.GetHead().GetRef()
 
 	// Run container to apply patch
-	remoteURL := fmt.Sprintf("https://%s@github.com/%s.git", plaintext, repository)
+	//remoteURL := fmt.Sprintf("https://%s@github.com/%s.git", plaintext, repository)
 	diff, err := diffFile.Contents(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to get file contents: %w", err)
