@@ -82,27 +82,8 @@ func (m *Book) UpdateChangelog(
 		WithMountedDirectory("/app", source).
 		WithWorkdir("/app")
 
-	out, _ := ctr.
-		WithExec([]string{"sh", "-c", "ls -al"}).
-		Stdout(ctx)
-	fmt.Println("Listing: ", out)
-
-	out, _ = ctr.
-		WithExec([]string{"sh", "-c", "git fetch main"}).
-		Stdout(ctx)
-
-	out, _ = ctr.
-		WithExec([]string{"sh", "-c", "git branch"}).
-		Stdout(ctx)
-	fmt.Println("git branch: ", out)
-
-	out, _ = ctr.
-		WithExec([]string{"sh", "-c", "git status"}).
-		Stdout(ctx)
-	fmt.Println("git status: ", out)
-
 	diff := ctr.
-		WithExec([]string{"sh", "-c", "git diff main > /tmp/a.diff"}).
+		WithExec([]string{"sh", "-c", "git diff origin/main > /tmp/a.diff"}).
 		File("/tmp/a.diff")
 
 	env := dag.Env(dagger.EnvOpts{Privileged: true}).
