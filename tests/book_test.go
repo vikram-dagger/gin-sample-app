@@ -33,6 +33,7 @@ func setupTest(t *testing.T) *gin.Engine {
 	r.POST("/api/books", controllers.CreateBook)
 	r.GET("/api/books", controllers.GetBooks)
 	r.GET("/api/books/:id", controllers.GetBookByID)
+	r.DELETE("/api/books/:id", controllers.DeleteBook)
 	return r
 }
 
@@ -102,4 +103,32 @@ func TestGetBookByID(t *testing.T) {
 	assert.Equal(t, firstBook.ID, fetched.ID)
 	assert.Equal(t, firstBook.Title, fetched.Title)
 	assert.Equal(t, firstBook.Author, fetched.Author)
+}
+
+func TestDeleteBook(t *testing.T) {
+	router := setupTest(t)
+	seedBooks(t)
+
+	var firstBook models.Book
+	if err := database.DB.First(&firstBook).Error; err != nil {
+		t.Fatalf("Failed to fetch seeded book: %v", err)
+	}
+
+	req, _ := http.NewRequest("DELETE", "/api/books/"+strconv.Itoa(int(firstBook.ID)), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code, "Expected 200 OK, got %d. Body: %s", w.Code, w.Body.String())
+
+	// Verify the book was deleted
+	var deletedBook models.Book
+	err := database.DB.First(&deletedBook, firstBook.ID).Error
+	assert.Error(t, err, "Book should have been deleted")
+
+	// Try to delete non-existent book
+	req, _ = http.NewRequest("DELETE", "/api/books/999999", nil)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code, "Expected 404 Not Found for non-existent book")
 }
