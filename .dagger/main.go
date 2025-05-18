@@ -117,7 +117,7 @@ func (m *Book) UpdateChangelog(
 	if repository != "" && ref != "" {
 		diffFile := *ctr.
 			WithFile("/app/CHANGELOG.md", changelogFile).
-			WithExec([]string{"sh", "-c", "git diff CHANGELOG.md > /tmp/changelog.diff"}).
+			WithExec([]string{"sh", "-c", "git diff > /tmp/changelog.diff"}).
 			File("/tmp/changelog.diff")
 
 		prURL, err := OpenPR(ctx, repository, ref, diffFile, token)
@@ -126,7 +126,7 @@ func (m *Book) UpdateChangelog(
 		}
 		fmt.Println("PR URL: ", prURL)
 
-		commentURL, err := m.WritePRComment(ctx, repository, ref, fmt.Sprintf("Changelog updated in PR %s", prURL), token)
+		commentURL, err := m.WritePRComment(ctx, repository, ref, fmt.Sprintf("Changelog updated: see PR %s", prURL), token)
 		if err != nil {
 			panic(fmt.Errorf("failed to write PR comment: %w", err))
 		}
@@ -215,7 +215,7 @@ func OpenPR(
 
 	// Create new PR
 	newPR := &github.NewPullRequest{
-		Title: github.String(fmt.Sprintf("Automated follow-up: Add changelog for PR #%s", prNumber)),
+		Title: github.String(fmt.Sprintf("Automated follow-up for PR #%s", prNumber)),
 		Head:  github.String(fmt.Sprintf("%s:%s", owner, newBranch)),
 		Base:  github.String(baseBranch),
 		Body:  github.String(fmt.Sprintf("This PR follows up PR #%s using `%s`.", prNumber, newBranch)),
