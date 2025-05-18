@@ -83,6 +83,7 @@ func (m *Book) UpdateChangelog(
 		WithWorkdir("/app")
 
 	diff := ctr.
+		WithExec([]string{"git", "fetch", "origin", "main"}).
 		WithExec([]string{"sh", "-c", "git diff origin/main > /tmp/a.diff"}).
 		File("/tmp/a.diff")
 
@@ -196,7 +197,6 @@ func OpenPR(
 		WithNewFile("/tmp/changelog.diff", diff).
 		WithWorkdir("/app").
 		//WithEnvVariable("GITHUB_TOKEN", plaintext).
-		WithExec([]string{"cat", "/tmp/changelog.diff"}).
 		WithExec([]string{"git", "init"}).
 		WithExec([]string{"git", "branch", "-m", "main"}).
 		WithExec([]string{"git", "config", "user.name", "Dagger Agent"}).
@@ -215,7 +215,7 @@ func OpenPR(
 
 	// Create new PR
 	newPR := &github.NewPullRequest{
-		Title: github.String(fmt.Sprintf("Automated follow-up to PR #%s", prNumber)),
+		Title: github.String(fmt.Sprintf("Automated follow-up: Add changelog for PR #%s", prNumber)),
 		Head:  github.String(fmt.Sprintf("%s:%s", owner, newBranch)),
 		Base:  github.String(baseBranch),
 		Body:  github.String(fmt.Sprintf("This PR follows up PR #%s using `%s`.", prNumber, newBranch)),
