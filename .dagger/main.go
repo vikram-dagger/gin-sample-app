@@ -116,7 +116,6 @@ func (m *Book) UpdateChangelog(
 		diffFile := ctr.
 			WithFile("/app/CHANGELOG.md", changelogFile).
 			WithExec([]string{"sh", "-c", "git diff CHANGELOG.md > /tmp/changelog.diff"}).
-			Terminal().
 			File("/tmp/changelog.diff")
 
 		prURL, err := OpenPR(ctx, repository, ref, diffFile, token)
