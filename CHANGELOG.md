@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2025-05-15
+### Changed
+- Removed internal CI/CD and pipeline files under the `.dagger/` directory, including internal Go scripts for pipeline automation. No application Go code, endpoints or models were changed.
+
+### Added
+- N/A
+
+### Removed
+- N/A
+
 ## [1.0.0] - 2025-05-14
 ### Added
 - Initial release of the Book API
