@@ -81,10 +81,10 @@ func (m *Book) UpdateChangelog(
 	ctr := dag.Container().
 		From("golang:latest").
 		WithMountedDirectory("/app", source).
-		WithWorkdir("/app")
+		WithWorkdir("/app").
+		WithExec([]string{"git", "fetch", "origin", "main"})
 
 	diff := ctr.
-		//WithExec([]string{"git", "fetch", "origin", "main"}).
 		WithExec([]string{"sh", "-c", "git diff origin/main > /tmp/a.diff"}).
 		File("/tmp/a.diff")
 
