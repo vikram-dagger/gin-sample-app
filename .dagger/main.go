@@ -76,14 +76,14 @@ func (m *Book) UpdateChangelog(
 	// +optional
 	token dagger.Secret,
 ) *Foo {
-	source = source.WithoutDirectory(".dagger")
+	source = source
 	ctr := dag.Container().
 		From("golang:latest").
 		WithMountedDirectory("/app", source).
 		WithWorkdir("/app")
 
 	diff := ctr.
-		WithExec([]string{"sh", "-c", "git diff > /tmp/a.diff"}).
+		WithExec([]string{"sh", "-c", "git diff main > /tmp/a.diff"}).
 		File("/tmp/a.diff")
 
 	env := dag.Env(dagger.EnvOpts{Privileged: true}).
