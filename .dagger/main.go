@@ -83,7 +83,7 @@ func (m *Book) UpdateChangelog(
 		WithWorkdir("/app")
 
 	diff := ctr.
-		WithExec([]string{"sh", "-c", "git diff origin/main > /tmp/a.diff"}).
+		WithExec([]string{"sh", "-c", "git diff main > /tmp/a.diff"}).
 		File("/tmp/a.diff")
 
 	env := dag.Env(dagger.EnvOpts{Privileged: true}).
@@ -193,7 +193,8 @@ func OpenPR(
 			Permissions: 0644,
 		}).
 		WithWorkdir("/app").
-		WithEnvVariable("GITHUB_TOKEN", plaintext).
+		//WithEnvVariable("GITHUB_TOKEN", plaintext).
+		WithExec([]string{"cat", "/tmp/changelog.diff"}).
 		WithExec([]string{"git", "init"}).
 		WithExec([]string{"git", "branch", "-m", "main"}).
 		WithExec([]string{"git", "config", "user.name", "Dagger Agent"}).
