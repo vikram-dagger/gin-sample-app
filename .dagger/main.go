@@ -200,7 +200,7 @@ func OpenPR(
 		WithExec([]string{"sh", "-c", "git remote add origin " + remoteURL}).
 		WithExec([]string{"git", "fetch", "origin", fmt.Sprintf("pull/%s/head:%s", prNumber, newBranch)}).
 		WithExec([]string{"git", "checkout", newBranch}).
-		WithExec([]string{"git", "apply", "/tmp/changelog.diff"}).
+		WithExec([]string{"git", "apply", "--allow-empty", "/tmp/changelog.diff"}).
 		WithExec([]string{"git", "add", "."}).
 		WithExec([]string{"git", "commit", "-m", fmt.Sprintf("Follows up on PR #%s", prNumber)}).
 		WithExec([]string{"git", "push", "--set-upstream", "origin", newBranch}).
