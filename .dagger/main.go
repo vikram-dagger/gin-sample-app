@@ -13,7 +13,7 @@ import (
 )
 
 type Foo struct {
-	File *dagger.File
+	File dagger.File
 	Data string
 }
 
@@ -90,7 +90,7 @@ func (m *Book) UpdateChangelog(
 	env := dag.Env(dagger.EnvOpts{Privileged: true}).
 		WithDirectoryInput("source", source, "directory with source code").
 		WithFileInput("diff", diff, "file with code diff").
-		WithFileOutput("after", "/tmp/changelog.diff file updated with diff of CHANGELOG.md").
+		WithFileOutput("after", "/tmp/changelog.diff file updated with diff of CHANGELOG.md")
 
 	prompt := `
 		- You are an expert in the Go programming language.
@@ -112,17 +112,17 @@ func (m *Book) UpdateChangelog(
 		WithEnv(env).
 		WithPrompt(prompt)
 
-	changelogFile := work.Env().Output("after").AsFile()
+	changelogFile := *work.Env().Output("after").AsFile()
 
 	// Check if we should open a PR
 	if repository != "" && ref != "" {
 		/*
-		diffFile := *ctr.
-			WithFile("/app/CHANGELOG2.md", changelogFile).
-			WithExec([]string{"sh", "-c", "git diff CHANGELOG.md CHANGELOG2.md > /tmp/changelog.diff"}).
-			Terminal().
-			File("/tmp/changelog.diff")
-			*/
+			diffFile := *ctr.
+				WithFile("/app/CHANGELOG2.md", changelogFile).
+				WithExec([]string{"sh", "-c", "git diff CHANGELOG.md CHANGELOG2.md > /tmp/changelog.diff"}).
+				Terminal().
+				File("/tmp/changelog.diff")
+		*/
 
 		prURL, err := OpenPR(ctx, repository, ref, changelogFile, token)
 		if err != nil {
