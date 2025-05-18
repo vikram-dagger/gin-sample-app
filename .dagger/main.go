@@ -83,7 +83,7 @@ func (m *Book) UpdateChangelog(
 		WithWorkdir("/app")
 
 	diff := ctr.
-		WithExec([]string{"git", "fetch", "origin", "main"}).
+		//WithExec([]string{"git", "fetch", "origin", "main"}).
 		WithExec([]string{"sh", "-c", "git diff origin/main > /tmp/a.diff"}).
 		File("/tmp/a.diff")
 
