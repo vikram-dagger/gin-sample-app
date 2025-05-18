@@ -4,6 +4,7 @@ import (
 	"context"
 	"dagger/book/internal/dagger"
 	"fmt"
+	"math/rand"
 	"regexp"
 	"strconv"
 	"strings"
@@ -118,7 +119,6 @@ func (m *Book) UpdateChangelog(
 		diffFile := *ctr.
 			WithFile("/app/CHANGELOG.md", &changelogFile).
 			WithExec([]string{"sh", "-c", "git diff origin/main -- CHANGELOG.md > /tmp/changelog.diff"}).
-			Terminal().
 			File("/tmp/changelog.diff")
 
 		prURL, err := OpenPR(ctx, repository, ref, diffFile, token)
@@ -163,7 +163,7 @@ func OpenPR(
 		return "", fmt.Errorf("invalid ref format: %s", ref)
 	}
 	prNumber := matches[1]
-	newBranch := fmt.Sprintf("patch-from-pr-%s", prNumber)
+	newBranch := fmt.Sprintf("patch-from-pr-%s-%d", prNumber, 1000+rand.Intn(9000))
 
 	// Setup GitHub client
 	plaintext, err := token.Plaintext(ctx)
@@ -195,9 +195,8 @@ func OpenPR(
 
 	_, err = dag.Container().
 		From("alpine/git").
-		WithNewFile("/tmp/changelog.diff", diff).
+		WithNewFile("/tmp/x.diff", diff).
 		WithWorkdir("/app").
-		WithExec([]string{"cat", "/tmp/changelog.diff"}).
 		//WithEnvVariable("GITHUB_TOKEN", plaintext).
 		WithExec([]string{"git", "init"}).
 		WithExec([]string{"git", "branch", "-m", "main"}).
@@ -206,7 +205,7 @@ func OpenPR(
 		WithExec([]string{"sh", "-c", "git remote add origin " + remoteURL}).
 		WithExec([]string{"git", "fetch", "origin", fmt.Sprintf("pull/%s/head:%s", prNumber, newBranch)}).
 		WithExec([]string{"git", "checkout", newBranch}).
-		WithExec([]string{"git", "apply", "--allow-empty", "/tmp/changelog.diff"}).
+		WithExec([]string{"git", "apply", "--allow-empty", "/tmp/x.diff"}).
 		WithExec([]string{"git", "add", "."}).
 		WithExec([]string{"git", "commit", "-m", fmt.Sprintf("Follows up on PR #%s", prNumber)}).
 		WithExec([]string{"git", "push", "--set-upstream", "origin", newBranch}).
