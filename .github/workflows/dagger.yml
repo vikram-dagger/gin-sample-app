@@ -15,9 +15,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ github.head_ref }}
       - name: Run tests
         id: test
         uses: dagger/dagger-for-github@8.0.0
@@ -37,6 +34,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
       - name: Update changelog
         uses: dagger/dagger-for-github@8.0.0
         with:

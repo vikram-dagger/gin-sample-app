@@ -98,7 +98,7 @@ func (m *Book) UpdateChangelog(
 	fmt.Println("git status: ", out)
 
 	diff := ctr.
-		WithExec([]string{"sh", "-c", "git diff origin/main > /tmp/a.diff"}).
+		WithExec([]string{"sh", "-c", "git diff main > /tmp/a.diff"}).
 		File("/tmp/a.diff")
 
 	env := dag.Env(dagger.EnvOpts{Privileged: true}).
