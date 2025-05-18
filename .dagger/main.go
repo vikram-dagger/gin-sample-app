@@ -88,6 +88,10 @@ func (m *Book) UpdateChangelog(
 	fmt.Println("Listing: ", out)
 
 	out, _ = ctr.
+		WithExec([]string{"sh", "-c", "git fetch main"}).
+		Stdout(ctx)
+
+	out, _ = ctr.
 		WithExec([]string{"sh", "-c", "git branch"}).
 		Stdout(ctx)
 	fmt.Println("git branch: ", out)
