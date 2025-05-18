@@ -117,7 +117,7 @@ func (m *Book) UpdateChangelog(
 	if repository != "" && ref != "" {
 		diffFile := *ctr.
 			WithFile("/app/CHANGELOG.md", changelogFile).
-			WithExec([]string{"sh", "-c", "git diff > /tmp/changelog.diff"}).
+			WithExec([]string{"sh", "-c", "git diff CHANGELOG.md > /tmp/changelog.diff"}).
 			File("/tmp/changelog.diff")
 
 		prURL, err := OpenPR(ctx, repository, ref, diffFile, token)
