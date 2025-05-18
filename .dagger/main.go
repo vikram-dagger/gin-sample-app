@@ -82,6 +82,7 @@ func (m *Book) UpdateChangelog(
 		From("golang:latest").
 		WithMountedDirectory("/app", source).
 		WithWorkdir("/app").
+		WithEnvVariable("CACHEBUSTER", strconv.Itoa(rand.Intn(100000))).
 		WithExec([]string{"git", "fetch", "origin", "main"})
 
 	diff := ctr.
