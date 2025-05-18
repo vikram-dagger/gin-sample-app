@@ -98,6 +98,7 @@ func (m *Book) UpdateChangelog(
 		- The directory has tools to let you read and write files.
 		- You also have access to a diff file with code changes.
 		- Understand the changes by reading the source code, the diff and the OpenAPI spec.
+		- Ignore all changes in the .dagger directory.
 		- Update the CHANGELOG.md file in the source directory.
 		- When updating the CHANGELOG.md file, increment the version and add a summary of the changes.
 		- You must save the CHANGELOG.md file after updating it.
