@@ -83,7 +83,7 @@ func (m *Book) UpdateChangelog(
 		WithWorkdir("/app")
 
 	diff := ctr.
-		WithExec([]string{"sh", "-c", "git diff main > /tmp/a.diff"}).
+		WithExec([]string{"sh", "-c", "git diff origin/main > /tmp/a.diff"}).
 		File("/tmp/a.diff")
 
 	env := dag.Env(dagger.EnvOpts{Privileged: true}).
@@ -114,7 +114,7 @@ func (m *Book) UpdateChangelog(
 
 	// Check if we should open a PR
 	if repository != "" && ref != "" {
-		diffFile := ctr.
+		diffFile := *ctr.
 			WithFile("/app/CHANGELOG.md", changelogFile).
 			WithExec([]string{"sh", "-c", "git diff CHANGELOG.md > /tmp/changelog.diff"}).
 			File("/tmp/changelog.diff")
@@ -151,7 +151,7 @@ func OpenPR(
 	ctx context.Context,
 	repository string,
 	ref string,
-	diffFile *dagger.File,
+	diffFile dagger.File,
 	token dagger.Secret,
 ) (string, error) {
 	// Extract PR number from ref
@@ -187,11 +187,13 @@ func OpenPR(
 	// Run container to apply patch
 	remoteURL := fmt.Sprintf("https://%s@github.com/%s.git", plaintext, repository)
 	diff, err := diffFile.Contents(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to get file contents: %w", err)
+	}
+	fmt.Println("Diff: ", diff)
 	_, err = dag.Container().
 		From("alpine/git").
-		WithNewFile("/tmp/changelog.diff", diff, dagger.ContainerWithNewFileOpts{
-			Permissions: 0644,
-		}).
+		WithNewFile("/tmp/changelog.diff", diff).
 		WithWorkdir("/app").
 		//WithEnvVariable("GITHUB_TOKEN", plaintext).
 		WithExec([]string{"cat", "/tmp/changelog.diff"}).
@@ -202,6 +204,7 @@ func OpenPR(
 		WithExec([]string{"sh", "-c", "git remote add origin " + remoteURL}).
 		WithExec([]string{"git", "fetch", "origin", fmt.Sprintf("pull/%s/head:%s", prNumber, newBranch)}).
 		WithExec([]string{"git", "checkout", newBranch}).
+		Terminal().
 		WithExec([]string{"git", "apply", "--allow-empty", "/tmp/changelog.diff"}).
 		WithExec([]string{"git", "add", "."}).
 		WithExec([]string{"git", "commit", "-m", fmt.Sprintf("Follows up on PR #%s", prNumber)}).
