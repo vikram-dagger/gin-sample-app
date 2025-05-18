@@ -90,7 +90,7 @@ func (m *Book) UpdateChangelog(
 	env := dag.Env(dagger.EnvOpts{Privileged: true}).
 		WithDirectoryInput("source", source, "directory with source code").
 		WithFileInput("diff", diff, "file with code diff").
-		WithFileOutput("after", "/tmp/changelog.diff file updated with diff of CHANGELOG.md")
+		WithFileOutput("after", "updated CHANGELOG.md file")
 
 	prompt := `
 		- You are an expert in the Go programming language.
@@ -102,9 +102,8 @@ func (m *Book) UpdateChangelog(
 		- Ignore all changes in the .dagger directory.
 		- Update the CHANGELOG.md file in the source directory.
 		- When updating the CHANGELOG.md file, increment the version and add a summary of the changes.
-		- Return a diff of your changes to the CHANGELOG.md file in git diff format.
-		- The diff should be saved in the file /tmp/changelog.diff.
-		- You are not done until your changes are saved back the /tmp/changelog.diff file.
+		- You must save the CHANGELOG.md file after updating it.
+		- You are not done until your changes are saved back to the CHANGELOG.md file.
 		- Focus only on the Go files in the directory.
 	`
 
@@ -116,15 +115,13 @@ func (m *Book) UpdateChangelog(
 
 	// Check if we should open a PR
 	if repository != "" && ref != "" {
-		/*
-			diffFile := *ctr.
-				WithFile("/app/CHANGELOG2.md", changelogFile).
-				WithExec([]string{"sh", "-c", "git diff CHANGELOG.md CHANGELOG2.md > /tmp/changelog.diff"}).
-				Terminal().
-				File("/tmp/changelog.diff")
-		*/
+		diffFile := *ctr.
+			WithFile("/app/CHANGELOG.md", &changelogFile).
+			WithExec([]string{"sh", "-c", "git diff origin/main -- CHANGELOG.md > /tmp/changelog.diff"}).
+			Terminal().
+			File("/tmp/changelog.diff")
 
-		prURL, err := OpenPR(ctx, repository, ref, changelogFile, token)
+		prURL, err := OpenPR(ctx, repository, ref, diffFile, token)
 		if err != nil {
 			panic(fmt.Errorf("failed to open PR: %w", err))
 		}
