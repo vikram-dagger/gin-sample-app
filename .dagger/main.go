@@ -89,7 +89,7 @@ func (m *Book) UpdateChangelog(
 	env := dag.Env(dagger.EnvOpts{Privileged: true}).
 		WithDirectoryInput("source", source, "directory with source code").
 		WithFileInput("diff", diff, "file with code diff").
-		WithFileOutput("after", "updated changelog file")
+		WithFileOutput("after", "updated CHANGELOG.md file")
 
 	prompt := `
 		- You are an expert in the Go programming language.
@@ -98,10 +98,10 @@ func (m *Book) UpdateChangelog(
 		- The directory has tools to let you read and write files.
 		- You also have access to a diff file with code changes.
 		- Understand the changes by reading the source code, the diff and the OpenAPI spec.
-		- Update the changelog file in the source directory.
-		- When updating the changelog file, increment the version and add a summary of the changes.
-		- You must save the changelog file after updating it.
-		- You are not done until your changes are saved back to the changelog file.
+		- Update the CHANGELOG.md file in the source directory.
+		- When updating the CHANGELOG.md file, increment the version and add a summary of the changes.
+		- You must save the CHANGELOG.md file after updating it.
+		- You are not done until your changes are saved back to the CHANGELOG.md file.
 		- Focus only on the Go files in the directory.
 	`
 
@@ -114,14 +114,22 @@ func (m *Book) UpdateChangelog(
 	// Check if we should open a PR
 	if repository != "" && ref != "" {
 		diffFile := ctr.
-			WithMountedFile("/app/CHANGELOG.md", changelogFile).
-			WithExec([]string{"sh", "-c", "git diff > /tmp/a.diff"}).
-			File("/tmp/a.diff")
+			WithFile("/app/CHANGELOG.md", changelogFile).
+			WithExec([]string{"sh", "-c", "git diff CHANGELOG.md > /tmp/changelog.diff"}).
+			Terminal().
+			File("/tmp/changelog.diff")
 
 		prURL, err := OpenPR(ctx, repository, ref, diffFile, token)
 		if err != nil {
 			panic(fmt.Errorf("failed to open PR: %w", err))
 		}
+		fmt.Println("PR URL: ", prURL)
+
+		commentURL, err := m.WritePRComment(ctx, repository, ref, fmt.Sprintf("Changelog updated in PR %s", prURL), token)
+		if err != nil {
+			panic(fmt.Errorf("failed to write PR comment: %w", err))
+		}
+		fmt.Println("Comment URL: ", commentURL)
 
 		return &Foo{Data: prURL}
 	}
@@ -181,7 +189,7 @@ func OpenPR(
 	diff, err := diffFile.Contents(ctx)
 	_, err = dag.Container().
 		From("alpine/git").
-		WithNewFile("/tmp/a.diff", diff, dagger.ContainerWithNewFileOpts{
+		WithNewFile("/tmp/changelog.diff", diff, dagger.ContainerWithNewFileOpts{
 			Permissions: 0644,
 		}).
 		WithWorkdir("/app").
@@ -192,7 +200,7 @@ func OpenPR(
 		WithExec([]string{"sh", "-c", "git remote add origin " + remoteURL}).
 		WithExec([]string{"git", "fetch", "origin", fmt.Sprintf("pull/%s/head:%s", prNumber, newBranch)}).
 		WithExec([]string{"git", "checkout", newBranch}).
-		WithExec([]string{"git", "apply", "/tmp/a.diff"}).
+		WithExec([]string{"git", "apply", "/tmp/changelog.diff"}).
 		WithExec([]string{"git", "add", "."}).
 		WithExec([]string{"git", "commit", "-m", fmt.Sprintf("Follows up on PR #%s", prNumber)}).
 		WithExec([]string{"git", "push", "--set-upstream", "origin", newBranch}).
