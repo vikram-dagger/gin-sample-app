@@ -71,6 +71,26 @@ paths:
         '500':
           description: Internal server error
 
+    delete:
+      summary: Delete a book by ID
+      description: Deletes a single book by its ID
+      operationId: deleteBookById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the book to delete
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Book successfully deleted
+        '404':
+          description: Book not found
+        '500':
+          description: Internal server error
+
 components:
   schemas:
     BookInput:
