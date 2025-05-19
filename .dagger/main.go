@@ -77,12 +77,10 @@ func (m *Book) UpdateChangelog(
 	// +optional
 	token dagger.Secret,
 ) Foo {
-	source = source
 	ctr := dag.Container().
 		From("golang:latest").
 		WithMountedDirectory("/app", source).
 		WithWorkdir("/app").
-		//WithEnvVariable("CACHEBUSTER", strconv.Itoa(rand.Intn(100000))).
 		WithExec([]string{"git", "fetch", "origin", "main"})
 
 	diff := ctr.
@@ -139,6 +137,80 @@ func (m *Book) UpdateChangelog(
 
 	return Foo{
 		File: changelogFile,
+		Data: "",
+	}
+}
+
+func (m *Book) UpdateSpec(
+	ctx context.Context,
+	// +defaultPath="/"
+	source *dagger.Directory,
+	// +optional
+	repository string,
+	// +optional
+	ref string,
+	// +optional
+	token dagger.Secret,
+) Foo {
+	ctr := dag.Container().
+		From("golang:latest").
+		WithMountedDirectory("/app", source).
+		WithWorkdir("/app").
+		WithExec([]string{"git", "fetch", "origin", "main"})
+
+	diff := ctr.
+		WithExec([]string{"sh", "-c", "git diff origin/main > /tmp/a.diff"}).
+		File("/tmp/a.diff")
+
+	env := dag.Env(dagger.EnvOpts{Privileged: true}).
+		WithFileInput("before", source.File("openapi.yml"), "original OpenAPI spec file").
+		WithFileInput("diff", diff, "file with code diff").
+		WithFileOutput("after", "updated OpenAPI spec file with summary of changes")
+
+	prompt := `
+		- You are an expert in the Go programming language.
+		- You are also an expert in the Gin framework and database integrations.
+		- You have access to a diff file with the API changes.
+		- Understand the changes by reading the diff file.
+		- Ignore all changes in the .dagger directory.
+		- Update the openapi.yml file with a summary of the API changes.
+		- You must save the openapi.yml file in "after" after updating it.
+		- You must not change the format of the openapi.yml file.
+	`
+
+	work := dag.LLM().
+		WithEnv(env).
+		WithPrompt(prompt)
+
+	specFile := *work.Env().Output("after").AsFile()
+
+	// Check if we should open a PR
+	if repository != "" && ref != "" {
+		diffFile := *ctr.
+			WithFile("/app/openapi.yml", &specFile).
+			WithExec([]string{"sh", "-c", "git diff -- openapi.yml > /tmp/openapi.diff"}).
+			File("/tmp/openapi.diff")
+
+		prURL, err := OpenPR(ctx, repository, ref, diffFile, token)
+		if err != nil {
+			panic(fmt.Errorf("failed to open PR: %w", err))
+		}
+		fmt.Println("PR URL: ", prURL)
+
+		commentURL, err := m.WritePRComment(ctx, repository, ref, fmt.Sprintf("OpenAPI spec updated: see PR %s", prURL), token)
+		if err != nil {
+			panic(fmt.Errorf("failed to write PR comment: %w", err))
+		}
+		fmt.Println("Comment URL: ", commentURL)
+
+		return Foo{
+			File: specFile,
+			Data: prURL,
+		}
+	}
+
+	return Foo{
+		File: specFile,
 		Data: "",
 	}
 }
