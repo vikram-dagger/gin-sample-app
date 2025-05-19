@@ -1,20 +1,20 @@
 name: dagger
 
 on:
-  pull_request:
-    types:
-      - labeled
+  issues:
+    types: [labeled]
 
 jobs:
   update-changelog:
-    name: update-changelog
-    if: contains(github.event.label.name, 'needs-changelog')
+    if: github.event.issue.pull_request && github.event.label.name == 'needs-changelog'
     runs-on: ubuntu-latest
+    name: update-changelog
     steps:
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: refs/pull/${{ github.event.issue.number }}/head
       - name: Update changelog
         uses: dagger/dagger-for-github@8.0.0
         with:
@@ -28,14 +28,15 @@ jobs:
           GITHUB_API_TOKEN: ${{ secrets.GH_API_TOKEN }}
 
   update-spec:
-    name: update-spec
-    if: contains(github.event.label.name, 'needs-spec')
+    if: github.event.issue.pull_request && github.event.label.name == 'needs-spec'
     runs-on: ubuntu-latest
+    name: update-spec
     steps:
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: refs/pull/${{ github.event.issue.number }}/head
       - name: Update spec
         uses: dagger/dagger-for-github@8.0.0
         with:
