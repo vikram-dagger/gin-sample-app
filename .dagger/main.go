@@ -132,10 +132,16 @@ func (m *Book) UpdateChangelog(
 		}
 		fmt.Println("Comment URL: ", commentURL)
 
-		return Foo{Data: prURL}
+		return Foo{
+			File: changelogFile,
+			Data: prURL,
+		}
 	}
 
-	return Foo{File: changelogFile}
+	return Foo{
+		File: changelogFile,
+		Data: "",
+	}
 }
 
 func (m *Book) Env(
