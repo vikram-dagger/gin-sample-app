@@ -71,49 +71,27 @@ paths:
         '500':
           description: Internal server error
 
+    delete:
+      summary: Delete a book by ID
+      description: Deletes a single book by its ID
+      operationId: deleteBookById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the book to delete
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Book deleted
+        '404':
+          description: Book not found
+        '500':
+          description: Internal server error
+
 components:
   schemas:
     BookInput:
-      type: object
-      required:
-        - title
-        - author
-      properties:
-        title:
-          type: string
-          description: The title of the book
-          example: "The Great Gatsby"
-        author:
-          type: string
-          description: The author of the book
-          example: "F. Scott Fitzgerald"
-
-    Book:
-      type: object
-      properties:
-        ID:
-          type: integer
-          format: int64
-          description: The unique identifier of the book
-          example: 1
-        CreatedAt:
-          type: string
-          format: date-time
-          description: When the book was created
-        UpdatedAt:
-          type: string
-          format: date-time
-          description: When the book was last updated
-        DeletedAt:
-          type: string
-          format: date-time
-          nullable: true
-          description: When the book was deleted (soft delete)
-        title:
-          type: string
-          description: The title of the book
-          example: "The Great Gatsby"
-        author:
-          type: string
-          description: The author of the book
-          example: "F. Scott Fitzgerald"
+      ...
