@@ -163,7 +163,7 @@ func (m *Book) UpdateSpec(
 		File("/tmp/a.diff")
 
 	env := dag.Env(dagger.EnvOpts{Privileged: true}).
-		WithFileInput("before", source.File("openapi.yml"), "original OpenAPI spec file").
+		WithFileInput("before", source.File("openapi.yaml"), "original OpenAPI spec file").
 		WithFileInput("diff", diff, "file with code diff").
 		WithFileOutput("after", "updated OpenAPI spec file with summary of changes")
 
@@ -173,9 +173,9 @@ func (m *Book) UpdateSpec(
 		- You have access to a diff file with the API changes.
 		- Understand the changes by reading the diff file.
 		- Ignore all changes in the .dagger directory.
-		- Update the openapi.yml file with a summary of the API changes.
-		- You must save the openapi.yml file in "after" after updating it.
-		- You must not change the format of the openapi.yml file.
+		- Update the openapi.yaml file with a summary of the API changes.
+		- You must save the openapi.yaml file in "after" after updating it.
+		- You must not change the format of the openapi.yaml file.
 	`
 
 	work := dag.LLM().
@@ -187,8 +187,8 @@ func (m *Book) UpdateSpec(
 	// Check if we should open a PR
 	if repository != "" && ref != "" {
 		diffFile := *ctr.
-			WithFile("/app/openapi.yml", &specFile).
-			WithExec([]string{"sh", "-c", "git diff -- openapi.yml > /tmp/openapi.diff"}).
+			WithFile("/app/openapi.yaml", &specFile).
+			WithExec([]string{"sh", "-c", "git diff -- openapi.yaml > /tmp/openapi.diff"}).
 			File("/tmp/openapi.diff")
 
 		prURL, err := OpenPR(ctx, repository, ref, diffFile, token)
