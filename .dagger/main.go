@@ -103,7 +103,8 @@ func (m *Book) UpdateChangelog(
 		- Update the CHANGELOG.md file with a summary of changes.
 		- When updating the CHANGELOG.md file, increment the version and add a summary of the changes.
 		- You must save the CHANGELOG.md file in "after" after updating it.
-		- You must not change the format of the CHANGELOG.md file.`
+		- You must not change the format of the CHANGELOG.md file.
+	`
 
 	work := dag.LLM().
 		WithEnv(env).
