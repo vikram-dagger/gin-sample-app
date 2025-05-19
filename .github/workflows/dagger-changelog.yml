@@ -9,7 +9,6 @@ jobs:
   update-changelog:
     name: update-changelog
     if: contains(github.event.label.name, 'needs-changelog')
-    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR branch
