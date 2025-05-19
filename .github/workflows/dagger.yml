@@ -10,6 +10,11 @@ on:
   issue_comment:
     types: [created]
 
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
 jobs:
   test:
     name: test
@@ -28,10 +33,10 @@ jobs:
 
   update-changelog:
     name: update-changelog
-    if: |
+    if: >
       github.event_name == 'issue_comment' &&
-      github.event.issue.pull_request &&
-      contains(github.event.comment.body, 'update-changelog')
+      contains(github.event.comment.body, 'update-changelog') &&
+      github.event.issue.pull_request
     runs-on: ubuntu-latest
     steps:
       - name: Get PR details
@@ -41,6 +46,11 @@ jobs:
           route: GET /repos/${{ github.repository }}/pulls/${{ github.event.issue.number }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Comment on PR
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: "Updating changelog..."
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
