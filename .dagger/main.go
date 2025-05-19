@@ -100,7 +100,7 @@ func (m *Book) UpdateChangelog(
 		- You have access to a diff file with code changes.
 		- Understand the changes by reading the diff file.
 		- Ignore all changes in the .dagger directory.
-		- Update the "before" CHANGELOG.md file with a summary of changes.
+		- Update the CHANGELOG.md file with a summary of changes.
 		- When updating the CHANGELOG.md file, increment the version and add a summary of the changes.
 		- You must save the CHANGELOG.md file in "after" after updating it.
 		- You must not change the format of the CHANGELOG.md file.`
