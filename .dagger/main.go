@@ -76,13 +76,13 @@ func (m *Book) UpdateChangelog(
 	ref string,
 	// +optional
 	token dagger.Secret,
-) *Foo {
+) Foo {
 	source = source
 	ctr := dag.Container().
 		From("golang:latest").
 		WithMountedDirectory("/app", source).
 		WithWorkdir("/app").
-		WithEnvVariable("CACHEBUSTER", strconv.Itoa(rand.Intn(100000))).
+		//WithEnvVariable("CACHEBUSTER", strconv.Itoa(rand.Intn(100000))).
 		WithExec([]string{"git", "fetch", "origin", "main"})
 
 	diff := ctr.
@@ -90,23 +90,20 @@ func (m *Book) UpdateChangelog(
 		File("/tmp/a.diff")
 
 	env := dag.Env(dagger.EnvOpts{Privileged: true}).
-		WithDirectoryInput("source", source, "directory with source code").
+		WithFileInput("before", source.File("CHANGELOG.md"), "original CHANGELOG.md file").
 		WithFileInput("diff", diff, "file with code diff").
-		WithFileOutput("after", "updated CHANGELOG.md file")
+		WithFileOutput("after", "updated CHANGELOG.md file with summary of changes")
 
 	prompt := `
 		- You are an expert in the Go programming language.
 		- You are also an expert in the Gin framework and database integrations.
-		- You have access to a directory with source code and an OpenAPI spec.
-		- The directory has tools to let you read and write files.
-		- You also have access to a diff file with code changes.
-		- Understand the changes by reading the source code, the diff and the OpenAPI spec.
+		- You have access to a diff file with code changes.
+		- Understand the changes by reading the diff file.
 		- Ignore all changes in the .dagger directory.
-		- Update the CHANGELOG.md file in the source directory.
+		- Update the CHANGELOG.md file with a summary of changes.
 		- When updating the CHANGELOG.md file, increment the version and add a summary of the changes.
 		- You must save the CHANGELOG.md file after updating it.
 		- You are not done until your changes are saved back to the CHANGELOG.md file.
-		- Focus only on the Go files in the directory.
 	`
 
 	work := dag.LLM().
@@ -119,7 +116,8 @@ func (m *Book) UpdateChangelog(
 	if repository != "" && ref != "" {
 		diffFile := *ctr.
 			WithFile("/app/CHANGELOG.md", &changelogFile).
-			WithExec([]string{"sh", "-c", "git diff origin/main -- CHANGELOG.md > /tmp/changelog.diff"}).
+			WithExec([]string{"sh", "-c", "git diff -- CHANGELOG.md > /tmp/changelog.diff"}).
+			Terminal().
 			File("/tmp/changelog.diff")
 
 		prURL, err := OpenPR(ctx, repository, ref, diffFile, token)
@@ -134,10 +132,10 @@ func (m *Book) UpdateChangelog(
 		}
 		fmt.Println("Comment URL: ", commentURL)
 
-		return &Foo{Data: prURL}
+		return Foo{Data: prURL}
 	}
 
-	return &Foo{File: changelogFile}
+	return Foo{File: changelogFile}
 }
 
 func (m *Book) Env(
