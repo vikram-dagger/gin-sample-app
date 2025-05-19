@@ -1,4 +1,4 @@
-name: dagger-test
+name: dagger
 
 on:
   push:
