@@ -1,12 +1,12 @@
 name: dagger
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  #push:
+  #  branches:
+  #    - main
+  #pull_request:
+  #  branches:
+  #    - main
   issue_comment:
     types: [created]
 
