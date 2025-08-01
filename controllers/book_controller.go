@@ -44,3 +44,22 @@ func GetBookByID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, book)
 }
+
+func DeleteBook(c *gin.Context) {
+	var book models.Book
+	id := c.Param("id")
+
+	// First check if the book exists
+	if err := database.DB.First(&book, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Book not found", "details": err.Error()})
+		return
+	}
+
+	// Delete the book
+	if err := database.DB.Delete(&book).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete book", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, book)
+}

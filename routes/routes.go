@@ -12,5 +12,6 @@ func RegisterRoutes(r *gin.Engine) {
 		api.POST("/books", controllers.CreateBook)
 		api.GET("/books", controllers.GetBooks)
 		api.GET("/books/:id", controllers.GetBookByID)
+		api.DELETE("/books/:id", controllers.DeleteBook)
 	}
 }
